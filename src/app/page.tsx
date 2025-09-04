@@ -124,7 +124,7 @@ export default function Page() {
   const [activeDay, setActiveDay] = useState<number>(weekdayToDayIndex(startOffset));
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
-  const [recipeKey, setRecipeKey] = useState<null | string>(null);
+  const [recipeKey, setRecipeKey] = useState<null | keyof typeof RECIPES>(null);
 
   useEffect(() => { if (typeof window !== "undefined") localStorage.setItem("tm_startOffset", String(startOffset)); }, [startOffset]);
   useEffect(() => { setActiveDay(weekdayToDayIndex(startOffset)); }, [startOffset]);
@@ -169,7 +169,7 @@ export default function Page() {
     );
   }, [search]);
 
-  const rec = recipeKey ? (RECIPES as any)[recipeKey] : null;
+  const rec = recipeKey ? RECIPES[recipeKey] : null;
 
   return (
     <div className="min-h-screen bg-white text-gray-900 p-4 md:p-8 grid gap-6 max-w-5xl mx-auto">
@@ -177,7 +177,7 @@ export default function Page() {
       <header className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <CalendarDays className="w-6 h-6" />
-          <h1 className="text-2xl md:text-3xl font-bold">Today's Menu</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Today&apos;s Menu</h1>
         </div>
         <div className="flex gap-2 items-center">
           <Select value={String(startOffset)} onValueChange={(v) => setStartOffset(Number(v))}>
