@@ -15,18 +15,18 @@ export default function CalendarView() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await loadCalendar(CSV_MEAL_CALENDAR);
-        setRows(data);
-      } catch () {
-        setErr("Failed to load calendar.");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+useEffect(() => {
+  (async () => {
+    try {
+      const data = await loadCalendar(CSV_MEAL_CALENDAR);
+      setRows(data);
+    } catch {
+      setErr("Failed to load calendar.");
+    } finally {
+      setLoading(false);
+    }
+  })();
+}, []);
 
   if (loading) return <div className="text-sm text-gray-500">Loading calendar…</div>;
   if (err) return <div className="text-sm text-red-600">{err}</div>;
