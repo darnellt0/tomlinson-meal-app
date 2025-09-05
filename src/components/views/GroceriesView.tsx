@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { GroceryRow } from "@/lib/types";
 import { loadGroceries } from "@/lib/loaders";
 import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox"; // if you don't have it, use a simple input
+//import { Checkbox } from "@/components/ui/checkbox"; // if you don't have it, use a simple input
 import { Badge } from "@/components/ui/badge";
 
 // 👉 Replace with your published CSV for SHEET 3 (WEEK 1)
