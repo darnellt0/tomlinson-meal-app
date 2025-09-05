@@ -6,8 +6,52 @@ import type { CalendarRow } from "@/lib/types";
 import { loadCalendar } from "@/lib/loaders";
 import { Card, CardContent } from "@/components/ui/card";
 
+export default function CalendarView() {
+  const [rows, setRows] = useState<CalendarRow[]>([]);
+
+  useEffect(() => {
+    loadCalendar().then(setRows);
+  }, []);
+
+  return (
+    <div>
+      <h2 className="text-xl font-bold">30-Day Meal Calendar</h2>
+      <table className="w-full mt-4 border-collapse border">
+        <thead>
+          <tr>
+            <th>Week</th>
+            <th>Day</th>
+            <th>Date</th>
+            <th>Cuisine</th>
+            <th>Breakfast</th>
+            <th>Lunch</th>
+            <th>Dinner</th>
+            <th>Batch Notes</th>
+            <th>CGM Focus</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i}>
+              <td>{row.Week}</td>
+              <td>{row.Day}</td>
+              <td>{row.Date}</td>
+              <td>{row["Cuisine Focus"]}</td>
+              <td>{row.Breakfast}</td>
+              <td>{row.Lunch}</td>
+              <td>{row.Dinner}</td>
+              <td>{row["Batch Notes"]}</td>
+              <td>{row["CGM Focus"]}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // 👉 Replace with your published CSV for SHEET 1 (Meal Calendar)
-const CSV_MEAL_CALENDAR = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTHgfjP9zXtcbLdDDBjL3eYfF-goQAxryyBYrBy_7RkpboHDG1VRE5_2Mesknl6uR1T0u15d53q2PJK/pubhtml?gid=0&single=true";
+const CSV_MEAL_CALENDAR = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTHgfjP9zXtcbLdDDBjL3eYfF-goQAxryyBYrBy_7RkpboHDG1VRE5_2Mesknl6uR1T0u15d53q2PJK/pub?gid=0&single=true&output=csv";
 
 export function CalendarView() {
   const [rows, setRows] = useState<CalendarRow[]>([]);
