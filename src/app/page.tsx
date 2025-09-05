@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { NavTabs } from "@/components/NavTabs";
 import { TodayView } from "@/components/views/TodayView";
 import { CalendarView } from "@/components/views/CalendarView";
-import { GroceriesView } from "@/components/views/GroceriesView";
+import GroceriesView from "@/components/views/GroceriesView";
 import TrackingView from "@/components/views/TrackingView";
 import PrepView from "@/components/views/PrepView";
 import ReflectionView from "@/components/views/ReflectionView";
