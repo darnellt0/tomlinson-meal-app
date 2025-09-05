@@ -12,7 +12,7 @@ import type { Recipe } from "@/lib/recipes";
 import { loadCalendar } from "@/lib/loaders";
 
 // 👉 Replace with your published CSV for SHEET 1 (Meal Calendar)
-const CSV_MEAL_CALENDAR = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTHgfjP9zXtcbLdDDBjL3eYfF-goQAxryyBYrBy_7RkpboHDG1VRE5_2Mesknl6uR1T0u15d53q2PJK/pubhtml?gid=0&single=true";
+const CSV_MEAL_CALENDAR = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTHgfjP9zXtcbLdDDBjL3eYfF-goQAxryyBYrBy_7RkpboHDG1VRE5_2Mesknl6uR1T0u15d53q2PJK/pub?gid=0&single=true&output=csv";
 
 // Map JS weekday to sheet Day codes
 const dayCode = (d: Date) => ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][(d.getDay()+6)%7];

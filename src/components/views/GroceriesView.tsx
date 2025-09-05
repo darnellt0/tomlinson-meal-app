@@ -1,70 +1,68 @@
+// src/components/views/GroceriesView.tsx
 "use client";
-
 import * as React from "react";
-import { useEffect, useMemo, useState } from "react";
 import type { GroceryRow } from "@/lib/types";
 import { loadGroceries } from "@/lib/loaders";
+import {
+  GROCERIES_W1_CSV_URL, GROCERIES_W2_CSV_URL,
+  GROCERIES_W3_CSV_URL, GROCERIES_W4_CSV_URL
+} from "@/lib/sheets";
 import { Card, CardContent } from "@/components/ui/card";
-//import { Checkbox } from "@/components/ui/checkbox"; // if you don't have it, use a simple input
-import { Badge } from "@/components/ui/badge";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox"; // if you want visual checkboxes
 
-// 👉 Replace with your published CSV for SHEET 3 (WEEK 1)
-const CSV_GROCERIES_W1 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTHgfjP9zXtcbLdDDBjL3eYfF-goQAxryyBYrBy_7RkpboHDG1VRE5_2Mesknl6uR1T0u15d53q2PJK/pub?gid=1104201051&single=true&output=csv";
+const WEEK_URLS: Record<string, string> = {
+  "Week 1": GROCERIES_W1_CSV_URL,
+  "Week 2": GROCERIES_W2_CSV_URL,
+  "Week 3": GROCERIES_W3_CSV_URL,
+  "Week 4": GROCERIES_W4_CSV_URL,
+};
 
-export function GroceriesView() {
-  const [rows, setRows] = useState<GroceryRow[]>([]);
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
+export default function GroceriesView() {
+  const [week, setWeek] = React.useState<keyof typeof WEEK_URLS>("Week 1");
+  const [rows, setRows] = React.useState<GroceryRow[]>([]);
 
-  useEffect(() => {
-    loadGroceries(CSV_GROCERIES_W1).then(setRows).catch(console.error);
-  }, []);
+  React.useEffect(() => {
+    loadGroceries(WEEK_URLS[week]).then(setRows);
+  }, [week]);
 
-  // Group by Category
-  const groups = useMemo(() => {
+  const grouped = React.useMemo(() => {
     const map = new Map<string, GroceryRow[]>();
     rows.forEach(r => {
       const key = r.Category || "Other";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(r);
+      map.set(key, [...(map.get(key) || []), r]);
     });
-    return Array.from(map.entries());
+    return map;
   }, [rows]);
-
-  const toggle = (key: string) => setChecked(prev => ({ ...prev, [key]: !prev[key] }));
-
-  if (!rows.length) return <div className="text-sm text-gray-600">Loading grocery list…</div>;
 
   return (
     <div className="grid gap-4">
-      {groups.map(([cat, items]) => (
-        <Card key={cat} className="rounded-2xl border">
-          <CardContent className="p-4 grid gap-2">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">{cat}</h3>
-              <Badge variant="secondary">{items.length} items</Badge>
-            </div>
-            <ul className="grid gap-2">
-              {items.map((it, idx) => {
-                const key = `${cat}__${it.Item}__${idx}`;
-                const isChecked = checked[key] || (it.Checked || "").includes("☑");
-                return (
-                  <li key={key} className="flex items-center justify-between gap-3">
-                    <label className="flex items-center gap-3">
-                      {/* if you don't have a Checkbox component, swap with <input type="checkbox" /> */}
-                      <input
-                        type="checkbox"
-                        checked={!!isChecked}
-                        onChange={() => toggle(key)}
-                        className="size-4"
-                      />
-                      <span className={isChecked ? "line-through text-gray-400" : ""}>
-                        {it.Item} {it.Quantity ? <em className="text-gray-500">({it.Quantity})</em> : null}
-                      </span>
-                    </label>
-                    {it.Notes ? <span className="text-xs text-gray-500">{it.Notes}</span> : null}
-                  </li>
-                );
-              })}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium">Week:</span>
+        <Select value={week} onValueChange={(v) => setWeek(v as any)}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Pick week" />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.keys(WEEK_URLS).map(w => <SelectItem key={w} value={w}>{w}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {[...grouped.entries()].map(([cat, items]) => (
+        <Card key={cat}>
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-2">{cat}</h3>
+            <ul className="space-y-2">
+              {items.map((it, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  {/* local-only checkbox UI */}
+                  <Checkbox />
+                  <span className="font-medium">{it.Item}</span>
+                  {it.Quantity && <span className="text-sm text-gray-600">— {it.Quantity}</span>}
+                  {it.Notes && <span className="text-sm text-gray-500 italic">({it.Notes})</span>}
+                </li>
+              ))}
             </ul>
           </CardContent>
         </Card>
