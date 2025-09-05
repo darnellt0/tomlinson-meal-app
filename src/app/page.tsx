@@ -20,13 +20,11 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { X, CalendarDays, ChefHat, HeartPulse, Apple } from "lucide-react";
+import { fetchRecipesFromCsv, type Recipe } from "@/lib/recipes";
 
-/**
- * Tomlinson Meal App – Whole30 Cultural Plan
- * - Tablet-friendly, offline-capable (static)
- * - Today’s menu + week at a glance
- * - Tap a meal to view recipe & health notes
- */
+// Replace this with your published CSV link
+const CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/1Ej-bjoMYz93Oa7pMWOCONR0VzDvl72Jf95_JlUgHPtE/pub?gid=0&single=true&output=csv";
 
 // ---- 7-Day Cultural Plan (repeat weekly) ----
 const PLAN = [
@@ -107,89 +105,6 @@ const PLAN = [
   },
 ] as const;
 
-// ---- Minimal recipe DB (keys matched by substring in meal text) ----
-const RECIPES = {
-  "No-Bean Chili": {
-    title: "Whole30 No-Bean Chili",
-    serves: 4,
-    ingredients: [
-      "1 lb ground turkey or beef (90% lean)",
-      "1 onion, diced",
-      "2 bell peppers, diced",
-      "2 zucchini, diced",
-      "2 cloves garlic, minced",
-      "1 can (14 oz) diced tomatoes (no sugar)",
-      "1 cup bone broth",
-      "Spices: chili powder, cumin, smoked paprika, black pepper",
-    ],
-    steps: [
-      "Brown meat; drain if needed.",
-      "Sauté onion, peppers, and garlic 3–4 min.",
-      "Add zucchini, tomatoes, broth, and spices; simmer 20–30 min.",
-    ],
-    health: [
-      "High protein + veggies; no beans keeps carbs lower.",
-      "Diabetes: pair with roasted broccoli.",
-      "BP: flavor from spices, not salt.",
-    ],
-  },
-  Zuppa: {
-    title: "Whole30 Zuppa Toscana",
-    serves: 4,
-    ingredients: [
-      "½ lb compliant turkey sausage",
-      "1 onion, diced",
-      "2 cloves garlic, minced",
-      "3 cups cauliflower florets",
-      "2 cups kale, chopped",
-      "2 cups bone broth",
-      "1 cup coconut milk",
-      "1 tbsp olive oil",
-    ],
-    steps: [
-      "Brown sausage; add onion + garlic to soften.",
-      "Add cauliflower + broth; simmer until tender.",
-      "Stir in kale + coconut milk; heat through.",
-    ],
-    health: ["Lower carb; potassium-rich kale.", "Good satiety from protein + fats."],
-  },
-  "Masala Veggie Omelet": {
-    title: "Masala Veggie Omelet",
-    serves: 1,
-    ingredients: [
-      "2 eggs",
-      "½ cup spinach",
-      "¼ cup tomato, diced",
-      "2 tbsp onion, diced",
-      "¼ tsp turmeric, pinch cumin",
-      "1 tsp olive oil",
-    ],
-    steps: [
-      "Sauté onion + tomato; wilt spinach.",
-      "Add whisked eggs with spices; cook to set.",
-    ],
-    health: ["Low carb, high protein; anti-inflammatory spices."],
-  },
-  "Fajita Bowl": {
-    title: "Chicken Fajita Bowl",
-    serves: 2,
-    ingredients: [
-      "2 small chicken breasts, sliced",
-      "1 bell pepper + ½ onion, sliced",
-      "2 cups cauliflower rice",
-      "½ avocado",
-      "Lime, cumin, garlic powder, black pepper",
-    ],
-    steps: [
-      "Sauté chicken with spices; add peppers/onion.",
-      "Serve over cauliflower rice; finish with lime + avocado.",
-    ],
-    health: ["Fiber + protein balance; avocado for steady energy."],
-  },
-} as const;
-
-type RecipeKey = keyof typeof RECIPES;
-
 const weekdayToDayIndex = (startOffset = 0) => {
   const d = new Date();
   const idx = (d.getDay() + 6) % 7; // Monday=0
@@ -209,7 +124,13 @@ export default function Page() {
   );
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
-  const [recipeKey, setRecipeKey] = useState<RecipeKey | null>(null);
+  const [recipeKey, setRecipeKey] = useState<string | null>(null);
+  const [recipes, setRecipes] = useState<Record<string, Recipe>>({});
+
+  // Load recipes from Google Sheet CSV
+  useEffect(() => {
+    fetchRecipesFromCsv(CSV_URL).then(setRecipes).catch(console.error);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -225,11 +146,11 @@ export default function Page() {
 
   const mealCards = useMemo(() => {
     return Object.entries(today.meals).map(([type, text]) => {
-      // strong-typed match against known recipe keys
-      const matchKey =
-        (Object.keys(RECIPES) as RecipeKey[]).find((k) =>
-          text.toLowerCase().includes(k.toLowerCase())
-        ) || null;
+      // Try to find a recipe whose title appears in the meal description
+      const match = Object.values(recipes).find((r) =>
+        text.toLowerCase().includes(r.title.toLowerCase())
+      );
+      const matchId = match ? match.id : null;
 
       return (
         <Card key={type} className="rounded-2xl shadow-sm border p-2">
@@ -240,11 +161,11 @@ export default function Page() {
             </div>
             <p className="text-base leading-snug">{text}</p>
             <div className="flex gap-2 pt-1">
-              {matchKey ? (
+              {matchId ? (
                 <Button
                   size="sm"
                   onClick={() => {
-                    setRecipeKey(matchKey);
+                    setRecipeKey(matchId);
                     setOpen(true);
                   }}
                 >
@@ -267,7 +188,7 @@ export default function Page() {
         </Card>
       );
     });
-  }, [today]);
+  }, [today, recipes]);
 
   const filteredDays = useMemo(() => {
     if (!search) return PLAN;
@@ -280,7 +201,7 @@ export default function Page() {
     );
   }, [search]);
 
-  const rec = recipeKey ? RECIPES[recipeKey] : null;
+  const rec = recipeKey ? recipes[recipeKey] : null;
 
   return (
     <div className="min-h-screen bg-white text-gray-900 p-4 md:p-8 grid gap-6 max-w-5xl mx-auto">
@@ -300,12 +221,12 @@ export default function Page() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="0">Map Monday → Day 1</SelectItem>
-              <SelectItem value="1">Map Tuesday → Day 1</SelectItem>
-              <SelectItem value="2">Map Wednesday → Day 1</SelectItem>
-              <SelectItem value="3">Map Thursday → Day 1</SelectItem>
-              <SelectItem value="4">Map Friday → Day 1</SelectItem>
-              <SelectItem value="5">Map Saturday → Day 1</SelectItem>
-              <SelectItem value="6">Map Sunday → Day 1</SelectItem>
+              <SelectItem value="1">Map Tuesday → Day 2</SelectItem>
+              <SelectItem value="2">Map Wednesday → Day 3</SelectItem>
+              <SelectItem value="3">Map Thursday → Day 4</SelectItem>
+              <SelectItem value="4">Map Friday → Day 5</SelectItem>
+              <SelectItem value="5">Map Saturday → Day 6</SelectItem>
+              <SelectItem value="6">Map Sunday → Day 7</SelectItem>
             </SelectContent>
           </Select>
           <Input
