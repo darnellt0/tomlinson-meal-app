@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { NavTabs } from "@/components/NavTabs";
 import { TodayView } from "@/components/views/TodayView";
-import { CalendarView } from "@/components/views/CalendarView";
+import CalendarView from "@/components/views/CalendarView";
 import GroceriesView from "@/components/views/GroceriesView";
 import TrackingView from "@/components/views/TrackingView";
 import PrepView from "@/components/views/PrepView";
