@@ -19,7 +19,7 @@ export type TrackingRow = {
 };
 
 export type PrepRow = { Week: string; "Sunday Tasks": string; "Time Estimate": string; "Weekday Tasks": string; "Family Assignments": string; };
-export type ReflectionRow = { Question: string; Response: string; "Action Items": string; };
+export type ReflectionRow = { Week?: string; Question: string; Response?: string; "Action Items"?: string; };
 export type MetricsBaselineRow = { Metric: string; Value: string; Date: string; Notes: string; };
 export type MetricsWeeklyRow = { Week: string; Weight: string; BP: string; Energy: string; Sleep: string; Mood: string; Digestion: string; "CGM Avg": string; Notes: string; };
 export type MetricsFinalRow = { Metric: string; Baseline: string; Final: string; Change: string; Percentage: string; };
