@@ -9,10 +9,10 @@ import { NavTabs } from "@/components/NavTabs";
 import { TodayView } from "@/components/views/TodayView";
 import CalendarView from "@/components/views/CalendarView";
 import GroceriesView from "@/components/views/GroceriesView";
-import TrackingView from "@/components/views/TrackingView";
-import PrepView from "@/components/views/PrepView";
-import ReflectionView from "@/components/views/ReflectionView";
-import MetricsView from "@/components/views/MetricsView";
+//import TrackingView from "@/components/views/TrackingView";
+//import PrepView from "@/components/views/PrepView";
+//import ReflectionView from "@/components/views/ReflectionView";
+//import MetricsView from "@/components/views/MetricsView";
 import { fetchRecipesFromCsv, type Recipe } from "@/lib/recipes";
 
 // 🔗 Your live Recipes sheet (already working in your app)

@@ -20,7 +20,7 @@ export default function CalendarView() {
       try {
         const data = await loadCalendar(CSV_MEAL_CALENDAR);
         setRows(data);
-      } catch (e) {
+      } catch () {
         setErr("Failed to load calendar.");
       } finally {
         setLoading(false);
