@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 
-type TabKey = "today" | "calendar" | "groceries";
+type TabKey = "today" | "calendar" | "groceries" | "tracking" | "prep" | "reflection" | "metrics";
 
 export function NavTabs({
   value,
@@ -16,6 +16,10 @@ export function NavTabs({
     { key: "today", label: "Today" },
     { key: "calendar", label: "Calendar" },
     { key: "groceries", label: "Groceries" },
+    { key: "tracking", label: "Tracking" },
+    { key: "prep", label: "Prep" },
+    { key: "reflection", label: "Reflection" },
+    { key: "metrics", label: "Metrics" },
   ];
 
   return (

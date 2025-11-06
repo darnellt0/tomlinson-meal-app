@@ -9,10 +9,10 @@ import { NavTabs } from "@/components/NavTabs";
 import { TodayView } from "@/components/views/TodayView";
 import CalendarView from "@/components/views/CalendarView";
 import GroceriesView from "@/components/views/GroceriesView";
-//import TrackingView from "@/components/views/TrackingView";
-//import PrepView from "@/components/views/PrepView";
-//import ReflectionView from "@/components/views/ReflectionView";
-//import MetricsView from "@/components/views/MetricsView";
+import TrackingView from "@/components/views/TrackingView";
+import PrepView from "@/components/views/PrepView";
+import ReflectionView from "@/components/views/ReflectionView";
+import MetricsView from "@/components/views/MetricsView";
 import { fetchRecipesFromCsv, type Recipe } from "@/lib/recipes";
 
 // 🔗 Your live Recipes sheet (already working in your app)
@@ -20,12 +20,13 @@ const CSV_RECIPES =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vTHgfjP9zXtcbLdDDBjL3eYfF-goQAxryyBYrBy_7RkpboHDG1VRE5_2Mesknl6uR1T0u15d53q2PJK/pub?gid=500862556&single=true&output=csv";
 
 export default function Page() {
-  const [tab, setTab] = useState<"today" | "calendar" | "groceries">("today");
+  const [tab, setTab] = useState<"today" | "calendar" | "groceries" | "tracking" | "prep" | "reflection" | "metrics">("today");
   const [startOffset, setStartOffset] = useState<number>(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("tm_startOffset") : null;
     return saved ? Number(saved) : 0;
   });
   const [recipes, setRecipes] = useState<Record<string, Recipe>>({});
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
     fetchRecipesFromCsv(CSV_RECIPES).then(setRecipes).catch(console.error);
@@ -34,6 +35,30 @@ export default function Page() {
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("tm_startOffset", String(startOffset));
   }, [startOffset]);
+
+  // Filter recipes based on search query
+  const filteredRecipes = React.useMemo(() => {
+    if (!searchQuery.trim()) return recipes;
+
+    const query = searchQuery.toLowerCase();
+    const filtered: Record<string, Recipe> = {};
+
+    for (const [id, recipe] of Object.entries(recipes)) {
+      const searchableText = [
+        recipe.title,
+        ...(recipe.ingredients || []),
+        ...(recipe.health || []),
+        recipe.cuisine,
+        ...(recipe.tags || []),
+      ].filter(Boolean).join(" ").toLowerCase();
+
+      if (searchableText.includes(query)) {
+        filtered[id] = recipe;
+      }
+    }
+
+    return filtered;
+  }, [recipes, searchQuery]);
 
   return (
     <div className="min-h-screen bg-white text-gray-900 p-4 md:p-8 grid gap-6 max-w-6xl mx-auto">
@@ -59,7 +84,12 @@ export default function Page() {
               <SelectItem value="6">Map Sunday → Day 1</SelectItem>
             </SelectContent>
           </Select>
-          <Input className="max-w-xs" placeholder="(Search coming soon…)" />
+          <Input
+            className="max-w-xs"
+            placeholder="Search recipes, meals, ingredients..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </header>
 
@@ -68,9 +98,13 @@ export default function Page() {
 
       {/* Content */}
       <main className="grid gap-6">
-        {tab === "today" && <TodayView recipes={recipes} />}
-        {tab === "calendar" && <CalendarView />}
-        {tab === "groceries" && <GroceriesView />}
+        {tab === "today" && <TodayView recipes={filteredRecipes} />}
+        {tab === "calendar" && <CalendarView searchQuery={searchQuery} />}
+        {tab === "groceries" && <GroceriesView searchQuery={searchQuery} />}
+        {tab === "tracking" && <TrackingView />}
+        {tab === "prep" && <PrepView />}
+        {tab === "reflection" && <ReflectionView />}
+        {tab === "metrics" && <MetricsView />}
       </main>
 
       <footer className="pt-4 text-xs text-gray-500">

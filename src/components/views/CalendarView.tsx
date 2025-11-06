@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 const CSV_MEAL_CALENDAR =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vTHgfjP9zXtcbLdDDBjL3eYfF-goQAxryyBYrBy_7RkpboHDG1VRE5_2Mesknl6uR1T0u15d53q2PJK/pub?gid=0&single=true&output=csv";
 
-export default function CalendarView() {
+export default function CalendarView({ searchQuery = "" }: { searchQuery?: string }) {
   const [rows, setRows] = useState<CalendarRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -28,12 +28,35 @@ useEffect(() => {
   })();
 }, []);
 
+  // Filter rows based on search query
+  const filteredRows = React.useMemo(() => {
+    if (!searchQuery.trim()) return rows;
+
+    const query = searchQuery.toLowerCase();
+    return rows.filter((r) => {
+      const searchableText = [
+        r.Day,
+        r["Cuisine Focus"],
+        r.Breakfast,
+        r.Lunch,
+        r.Dinner,
+        r["Batch Notes"],
+        r["CGM Focus"],
+      ].filter(Boolean).join(" ").toLowerCase();
+
+      return searchableText.includes(query);
+    });
+  }, [rows, searchQuery]);
+
   if (loading) return <div className="text-sm text-gray-500">Loading calendar…</div>;
   if (err) return <div className="text-sm text-red-600">{err}</div>;
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {rows.map((r, i) => (
+      {searchQuery && filteredRows.length === 0 && (
+        <div className="text-sm text-gray-500 col-span-full">No calendar entries match your search.</div>
+      )}
+      {filteredRows.map((r, i) => (
         <Card key={i} className="rounded-2xl border">
           <CardContent className="p-4 grid gap-1">
             <div className="text-xs text-gray-500">Week {r.Week} • {r.Day}</div>

@@ -24,7 +24,7 @@ const WEEK_URLS: Record<string, string> = {
   "Week 4": GROCERIES_W4_CSV_URL,
 };
 
-export default function GroceriesView() {
+export default function GroceriesView({ searchQuery = "" }: { searchQuery?: string }) {
   const [week, setWeek] = useState<string>("Week 1");
   const [rows, setRows] = useState<GroceryRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,15 +46,32 @@ export default function GroceriesView() {
     })();
   }, [week]);
 
+  // Filter rows based on search query
+  const filteredRows = useMemo(() => {
+    if (!searchQuery.trim()) return rows;
+
+    const query = searchQuery.toLowerCase();
+    return rows.filter((r) => {
+      const searchableText = [
+        r.Item,
+        r.Quantity,
+        r.Category,
+        r.Notes,
+      ].filter(Boolean).join(" ").toLowerCase();
+
+      return searchableText.includes(query);
+    });
+  }, [rows, searchQuery]);
+
   const grouped = useMemo(() => {
     const byCat: Record<string, GroceryRow[]> = {};
-    rows.forEach((r) => {
+    filteredRows.forEach((r) => {
       const cat = r.Category || "Other";
       byCat[cat] = byCat[cat] || [];
       byCat[cat].push(r);
     });
     return byCat;
-  }, [rows]);
+  }, [filteredRows]);
 
   return (
     <div className="grid gap-4">
@@ -74,6 +91,10 @@ export default function GroceriesView() {
 
       {loading && <div className="text-sm text-gray-500">Loading grocery list…</div>}
       {err && <div className="text-sm text-red-600">{err}</div>}
+
+      {!loading && !err && searchQuery && Object.keys(grouped).length === 0 && (
+        <div className="text-sm text-gray-500">No grocery items match your search.</div>
+      )}
 
       {!loading && !err && Object.entries(grouped).map(([cat, items]) => (
         <Card key={cat} className="rounded-2xl border">
