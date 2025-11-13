@@ -1,0 +1,297 @@
+// src/lib/__tests__/health.test.ts
+// Unit tests for health calculation functions
+
+import { describe, it, expect } from "@jest/globals";
+import {
+  calculateBMR,
+  calculateTDEE,
+  calculateTargetCalories,
+  calculateMacros,
+  generateCalorieGoals,
+  aggregateDailyNutrition,
+  createDailyLog,
+  scaleNutrition,
+  validateCalorieGoals,
+} from "../health";
+import type { UserProfile, MealLog, CalorieGoals } from "../types";
+
+describe("Health Calculations", () => {
+  const mockMaleProfile: UserProfile = {
+    name: "Test Male",
+    age: 30,
+    sex: "male",
+    heightCm: 180,
+    weightKg: 80,
+    activityLevel: "moderate",
+  };
+
+  const mockFemaleProfile: UserProfile = {
+    name: "Test Female",
+    age: 30,
+    sex: "female",
+    heightCm: 165,
+    weightKg: 65,
+    activityLevel: "light",
+  };
+
+  describe("calculateBMR", () => {
+    it("should calculate BMR for male using Mifflin-St Jeor", () => {
+      const bmr = calculateBMR(mockMaleProfile);
+      // (10 × 80) + (6.25 × 180) - (5 × 30) + 5 = 800 + 1125 - 150 + 5 = 1780
+      expect(bmr).toBe(1780);
+    });
+
+    it("should calculate BMR for female using Mifflin-St Jeor", () => {
+      const bmr = calculateBMR(mockFemaleProfile);
+      // (10 × 65) + (6.25 × 165) - (5 × 30) - 161 = 650 + 1031.25 - 150 - 161 = 1370.25 → 1370
+      expect(bmr).toBe(1370);
+    });
+  });
+
+  describe("calculateTDEE", () => {
+    it("should calculate TDEE with activity multiplier", () => {
+      const bmr = 1780;
+      const tdee = calculateTDEE({ ...mockMaleProfile, activityLevel: "moderate" }, bmr);
+      // 1780 × 1.55 = 2759
+      expect(tdee).toBe(2759);
+    });
+
+    it("should handle sedentary activity level", () => {
+      const bmr = 1370;
+      const tdee = calculateTDEE({ ...mockFemaleProfile, activityLevel: "sedentary" }, bmr);
+      // 1370 × 1.2 = 1644
+      expect(tdee).toBe(1644);
+    });
+  });
+
+  describe("calculateTargetCalories", () => {
+    it("should maintain TDEE for maintain approach", () => {
+      const target = calculateTargetCalories(2000, "maintain");
+      expect(target).toBe(2000);
+    });
+
+    it("should create deficit for weight loss", () => {
+      const target = calculateTargetCalories(2000, "deficit", -0.5); // -0.5 kg/week
+      // -0.5 kg/week × 7700 cal/kg / 7 days = -550 cal/day
+      // 2000 - 550 = 1450
+      expect(target).toBe(1450);
+    });
+
+    it("should enforce minimum safe calories for women (1200)", () => {
+      const target = calculateTargetCalories(1400, "deficit", -1.0); // Aggressive
+      expect(target).toBeGreaterThanOrEqual(1200);
+    });
+
+    it("should create surplus for weight gain", () => {
+      const target = calculateTargetCalories(2000, "surplus", 0.25); // +0.25 kg/week
+      // +0.25 kg/week × 7700 cal/kg / 7 days = +275 cal/day
+      // 2000 + 275 = 2275
+      expect(target).toBe(2275);
+    });
+  });
+
+  describe("calculateMacros", () => {
+    it("should calculate macros from calorie target with default ratios", () => {
+      const macros = calculateMacros(2000);
+      // Protein: 30% × 2000 / 4 = 150g
+      // Fat: 35% × 2000 / 9 = 77.78 → 78g
+      // Carbs: 35% × 2000 / 4 = 175g
+      expect(macros.proteinGrams).toBe(150);
+      expect(macros.fatGrams).toBe(78);
+      expect(macros.carbGrams).toBe(175);
+    });
+
+    it("should handle custom macro ratios", () => {
+      const macros = calculateMacros(1500, { protein: 0.4, fat: 0.3, carbs: 0.3 });
+      // Protein: 40% × 1500 / 4 = 150g
+      // Fat: 30% × 1500 / 9 = 50g
+      // Carbs: 30% × 1500 / 4 = 112.5 → 113g
+      expect(macros.proteinGrams).toBe(150);
+      expect(macros.fatGrams).toBe(50);
+      expect(macros.carbGrams).toBeCloseTo(113, 0);
+    });
+  });
+
+  describe("aggregateDailyNutrition", () => {
+    it("should sum nutrition from multiple meals", () => {
+      const meals: MealLog[] = [
+        {
+          id: "1",
+          date: "2025-01-15",
+          mealType: "breakfast",
+          source: "planned",
+          nutrition: { calories: 400, protein: 25, fat: 15, carbs: 45 },
+          timestamp: "2025-01-15T08:00:00Z",
+        },
+        {
+          id: "2",
+          date: "2025-01-15",
+          mealType: "lunch",
+          source: "planned",
+          nutrition: { calories: 500, protein: 35, fat: 20, carbs: 50 },
+          timestamp: "2025-01-15T12:00:00Z",
+        },
+      ];
+
+      const totals = aggregateDailyNutrition(meals);
+      expect(totals).toEqual({
+        calories: 900,
+        protein: 60,
+        fat: 35,
+        carbs: 95,
+      });
+    });
+
+    it("should handle meals without nutrition data", () => {
+      const meals: MealLog[] = [
+        {
+          id: "1",
+          date: "2025-01-15",
+          mealType: "breakfast",
+          source: "manual",
+          manualDescription: "Eggs and toast",
+          timestamp: "2025-01-15T08:00:00Z",
+        },
+      ];
+
+      const totals = aggregateDailyNutrition(meals);
+      expect(totals).toEqual({
+        calories: 0,
+        protein: 0,
+        fat: 0,
+        carbs: 0,
+      });
+    });
+  });
+
+  describe("createDailyLog", () => {
+    it("should create daily log with on-target status", () => {
+      const goals: CalorieGoals = {
+        targetCalories: 2000,
+        proteinGrams: 150,
+        fatGrams: 78,
+        carbGrams: 175,
+        bmr: 1780,
+        tdee: 2000,
+        approach: "maintain",
+      };
+
+      const meals: MealLog[] = [
+        {
+          id: "1",
+          date: "2025-01-15",
+          mealType: "dinner",
+          source: "planned",
+          nutrition: { calories: 1950, protein: 145, fat: 75, carbs: 170 },
+          timestamp: "2025-01-15T18:00:00Z",
+        },
+      ];
+
+      const log = createDailyLog("2025-01-15", meals, goals);
+      expect(log.status).toBe("on-target"); // 1950/2000 = 0.975, within 90-110%
+      expect(log.totals.calories).toBe(1950);
+    });
+
+    it("should mark as under when below 90% of target", () => {
+      const goals: CalorieGoals = {
+        targetCalories: 2000,
+        proteinGrams: 150,
+        fatGrams: 78,
+        carbGrams: 175,
+        bmr: 1780,
+        tdee: 2000,
+        approach: "maintain",
+      };
+
+      const meals: MealLog[] = [
+        {
+          id: "1",
+          date: "2025-01-15",
+          mealType: "dinner",
+          source: "planned",
+          nutrition: { calories: 1500, protein: 100, fat: 50, carbs: 120 },
+          timestamp: "2025-01-15T18:00:00Z",
+        },
+      ];
+
+      const log = createDailyLog("2025-01-15", meals, goals);
+      expect(log.status).toBe("under"); // 1500/2000 = 0.75 < 0.9
+    });
+  });
+
+  describe("scaleNutrition", () => {
+    it("should scale nutrition for different serving sizes", () => {
+      const baseNutrition = {
+        calories: 600,
+        protein: 48,
+        fat: 24,
+        carbs: 36,
+        whole30Compliant: true,
+      };
+
+      // Recipe serves 6, user ate 1.5 servings
+      const scaled = scaleNutrition(baseNutrition, 6, 1.5);
+
+      // 600 * (1.5/6) = 600 * 0.25 = 150
+      expect(scaled.calories).toBe(150);
+      expect(scaled.protein).toBe(12);
+      expect(scaled.fat).toBe(6);
+      expect(scaled.carbs).toBe(9);
+      expect(scaled.whole30Compliant).toBe(true);
+    });
+  });
+
+  describe("validateCalorieGoals", () => {
+    it("should pass safe goals", () => {
+      const goals: CalorieGoals = {
+        targetCalories: 1800,
+        proteinGrams: 135,
+        fatGrams: 70,
+        carbGrams: 158,
+        bmr: 1600,
+        tdee: 2000,
+        approach: "deficit",
+        weeklyWeightChangeKg: -0.5,
+      };
+
+      const result = validateCalorieGoals(goals, mockFemaleProfile);
+      expect(result.safe).toBe(true);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it("should warn about too-low calories for women", () => {
+      const goals: CalorieGoals = {
+        targetCalories: 1000,
+        proteinGrams: 75,
+        fatGrams: 39,
+        carbGrams: 88,
+        bmr: 1370,
+        tdee: 1644,
+        approach: "deficit",
+        weeklyWeightChangeKg: -0.8,
+      };
+
+      const result = validateCalorieGoals(goals, mockFemaleProfile);
+      expect(result.safe).toBe(false);
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings[0]).toContain("below recommended minimum");
+    });
+
+    it("should warn about too-aggressive weight loss", () => {
+      const goals: CalorieGoals = {
+        targetCalories: 1600,
+        proteinGrams: 120,
+        fatGrams: 62,
+        carbGrams: 140,
+        bmr: 1780,
+        tdee: 2400,
+        approach: "deficit",
+        weeklyWeightChangeKg: -1.5, // 3.3 lbs/week - too aggressive
+      };
+
+      const result = validateCalorieGoals(goals, mockMaleProfile);
+      expect(result.safe).toBe(false);
+      expect(result.warnings.some((w) => w.includes("too aggressive"))).toBe(true);
+    });
+  });
+});
