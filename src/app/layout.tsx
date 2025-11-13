@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { HealthSettingsProvider } from "@/contexts/HealthSettingsContext";
+import { WeightGoalsProvider } from "@/contexts/WeightGoalsContext";
 
 // Load Geist fonts into CSS variables
 const geistSans = Geist({
@@ -30,7 +31,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground`}
       >
         <HealthSettingsProvider>
-          {children}
+          <WeightGoalsProvider>
+            {children}
+          </WeightGoalsProvider>
         </HealthSettingsProvider>
       </body>
     </html>

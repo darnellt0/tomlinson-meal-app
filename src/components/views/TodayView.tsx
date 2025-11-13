@@ -6,10 +6,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { X, ChefHat, HeartPulse } from "lucide-react";
+import { X, ChefHat, HeartPulse, Utensils, Scale } from "lucide-react";
 import type { CalendarRow } from "@/lib/types";
 import type { Recipe } from "@/lib/recipes";
 import { loadCalendar } from "@/lib/loaders";
+import { CalorieTracker } from "@/components/CalorieTracker";
+import { PortionAdjuster } from "@/components/PortionAdjuster";
+import { useWeightGoals } from "@/contexts/WeightGoalsContext";
+import type { MealLog } from "@/lib/weight-goals";
 
 // 👉 Replace with your published CSV for SHEET 1 (Meal Calendar)
 const CSV_MEAL_CALENDAR = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTHgfjP9zXtcbLdDDBjL3eYfF-goQAxryyBYrBy_7RkpboHDG1VRE5_2Mesknl6uR1T0u15d53q2PJK/pub?gid=0&single=true&output=csv";
@@ -21,6 +25,11 @@ export function TodayView({ recipes }: { recipes: Record<string, Recipe> }) {
   const [rows, setRows] = useState<CalendarRow[]>([]);
   const [open, setOpen] = useState(false);
   const [recipeKey, setRecipeKey] = useState<string | null>(null);
+  const [portionAdjusterOpen, setPortionAdjusterOpen] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [selectedMealType, setSelectedMealType] = useState<MealLog['mealType']>('breakfast');
+
+  const { logMeal, getRemainingCalories, getTodayLog } = useWeightGoals();
 
   useEffect(() => {
     loadCalendar(CSV_MEAL_CALENDAR).then(setRows).catch(console.error);
@@ -70,11 +79,50 @@ export function TodayView({ recipes }: { recipes: Record<string, Recipe> }) {
             <Badge variant="secondary">{meals.Focus}</Badge>
           </div>
           <p className="text-base leading-snug">{entry.label}</p>
-          <div className="flex gap-2 pt-1">
+
+          {/* Show nutrition if available */}
+          {r?.calories && (
+            <div className="text-sm text-gray-600 mt-2">
+              🔥 {r.calories} cal
+              {r.protein && ` | 💪 ${r.protein}g protein`}
+              {r.carbs && ` | 🍞 ${r.carbs}g carbs`}
+            </div>
+          )}
+
+          <div className="flex gap-2 pt-2 flex-wrap">
             {r ? (
-              <Button size="sm" onClick={() => { setRecipeKey(entry.recipeId); setOpen(true); }}>
-                <ChefHat className="w-4 h-4 mr-2" /> View Recipe
-              </Button>
+              <>
+                <Button size="sm" onClick={() => { setRecipeKey(entry.recipeId); setOpen(true); }}>
+                  <ChefHat className="w-4 h-4 mr-2" /> View Recipe
+                </Button>
+
+                {r.calories && (
+                  <>
+                    {!isMealLogged(type.toLowerCase()) ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => handleLogMeal(r, type.toLowerCase() as MealLog['mealType'])}
+                        >
+                          <Utensils className="w-4 h-4 mr-2" /> Log Meal
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleAdjustPortion(r, type.toLowerCase() as MealLog['mealType'])}
+                        >
+                          <Scale className="w-4 h-4 mr-2" /> Adjust Portion
+                        </Button>
+                      </>
+                    ) : (
+                      <Badge variant="default" className="py-1">
+                        ✓ Logged
+                      </Badge>
+                    )}
+                  </>
+                )}
+              </>
             ) : (
               <Button size="sm" variant="outline" onClick={() => setOpen(true)}>Notes</Button>
             )}
@@ -84,8 +132,58 @@ export function TodayView({ recipes }: { recipes: Record<string, Recipe> }) {
     );
   };
 
+  // Handle logging meal
+  const handleLogMeal = (recipe: Recipe, mealType: MealLog['mealType'], portion: number = 1.0) => {
+    if (!recipe.calories) {
+      alert("This recipe doesn't have nutritional information yet.");
+      return;
+    }
+
+    const adjustedCalories = Math.round(recipe.calories * portion);
+    const adjustedProtein = Math.round((recipe.protein || 0) * portion);
+    const adjustedCarbs = Math.round((recipe.carbs || 0) * portion);
+    const adjustedFats = Math.round((recipe.fats || 0) * portion);
+
+    logMeal({
+      mealType,
+      recipeId: recipe.id,
+      recipeName: recipe.title,
+      calories: adjustedCalories,
+      protein: adjustedProtein,
+      carbs: adjustedCarbs,
+      fats: adjustedFats,
+      fiber: recipe.fiber ? Math.round(recipe.fiber * portion) : undefined,
+      sugar: recipe.sugar ? Math.round(recipe.sugar * portion) : undefined,
+      sodium: recipe.sodium ? Math.round(recipe.sodium * portion) : undefined,
+      servingSize: portion
+    });
+  };
+
+  // Open portion adjuster
+  const handleAdjustPortion = (recipe: Recipe, mealType: MealLog['mealType']) => {
+    setSelectedRecipe(recipe);
+    setSelectedMealType(mealType);
+    setPortionAdjusterOpen(true);
+  };
+
+  // Handle portion apply
+  const handlePortionApply = (portion: number, adjustedRecipe: Recipe) => {
+    handleLogMeal(adjustedRecipe, selectedMealType, portion);
+  };
+
+  const remainingCalories = getRemainingCalories();
+  const todayLog = getTodayLog();
+
+  // Check if meal is already logged
+  const isMealLogged = (mealType: string) => {
+    return todayLog?.meals.some(m => m.mealType === mealType) || false;
+  };
+
   return (
     <>
+      {/* CALORIE TRACKER */}
+      <CalorieTracker />
+
       <div className="grid gap-3 md:grid-cols-3">
         <MealCard type="Breakfast" entry={{ label: meals.Breakfast.label, recipeId: meals.Breakfast.recipeId }} />
         <MealCard type="Lunch" entry={{ label: meals.Lunch.label, recipeId: meals.Lunch.recipeId }} />
@@ -139,6 +237,17 @@ export function TodayView({ recipes }: { recipes: Record<string, Recipe> }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* PORTION ADJUSTER */}
+      {selectedRecipe && (
+        <PortionAdjuster
+          recipe={selectedRecipe}
+          remainingCalories={remainingCalories}
+          open={portionAdjusterOpen}
+          onOpenChange={setPortionAdjusterOpen}
+          onApply={handlePortionApply}
+        />
+      )}
     </>
   );
 }

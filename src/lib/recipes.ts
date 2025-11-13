@@ -1,4 +1,6 @@
 // src/lib/recipes.ts
+import type { RecipeNutrition } from "@/lib/weight-goals";
+
 export type Recipe = {
   id: string;
   title: string;
@@ -8,6 +10,28 @@ export type Recipe = {
   health: string[];
   cuisine?: string;
   tags?: string[];
+
+  // NEW: Nutritional information (optional, for calorie tracking)
+  nutrition?: RecipeNutrition;
+
+  // NEW: Simplified nutrition (if full RecipeNutrition not available)
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fats?: number;
+  fiber?: number;
+  sugar?: number;
+  sodium?: number;
+
+  // NEW: Health compliance (extends existing system)
+  isWhole30?: boolean;
+  isDiabeticFriendly?: boolean;
+  isLowSodium?: boolean;
+  estimatedGlucoseImpact?: 'low' | 'medium' | 'high';
+  sodiumLevel?: 'low' | 'medium' | 'high';
+  isInstantPot?: boolean;
+  flavorProfile?: string[];
+  keyIngredients?: string[];
 };
 
 // Robust CSV -> rows (handles quotes, commas, newlines inside quotes)
@@ -93,6 +117,25 @@ export async function fetchRecipesFromCsv(csvUrl: string): Promise<Record<string
       health: toList(r.health),
       cuisine: r.cuisine || "",
       tags: toList(r.tags),
+
+      // NEW: Parse nutrition data if available
+      calories: r.calories ? Number(r.calories) : undefined,
+      protein: r.protein ? Number(r.protein) : undefined,
+      carbs: r.carbs ? Number(r.carbs) : undefined,
+      fats: r.fats ? Number(r.fats) : undefined,
+      fiber: r.fiber ? Number(r.fiber) : undefined,
+      sugar: r.sugar ? Number(r.sugar) : undefined,
+      sodium: r.sodium ? Number(r.sodium) : undefined,
+
+      // NEW: Parse health compliance flags
+      isWhole30: r.isWhole30 === 'TRUE' || r.isWhole30 === 'true',
+      isDiabeticFriendly: r.isDiabeticFriendly === 'TRUE' || r.isDiabeticFriendly === 'true',
+      isLowSodium: r.isLowSodium === 'TRUE' || r.isLowSodium === 'true',
+      estimatedGlucoseImpact: r.estimatedGlucoseImpact as 'low' | 'medium' | 'high' | undefined,
+      sodiumLevel: r.sodiumLevel as 'low' | 'medium' | 'high' | undefined,
+      isInstantPot: r.isInstantPot === 'TRUE' || r.isInstantPot === 'true',
+      flavorProfile: toList(r.flavorProfile || ''),
+      keyIngredients: toList(r.keyIngredients || '')
     };
   }
   return byId;

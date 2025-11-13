@@ -8,13 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Settings, X, Plus, Heart, Activity } from "lucide-react";
+import { Settings, X, Plus, Heart, Activity, Target } from "lucide-react";
 import { useHealthSettings } from "@/contexts/HealthSettingsContext";
 import { getModeDescription, getModeGuidance } from "@/lib/health-settings";
+import { WeightGoalsPanel } from "@/components/WeightGoalsPanel";
+
+type SettingsTab = 'health' | 'weight';
 
 export function HealthSettingsPanel() {
   const { settings, updateMode, updateSettings, addAvoidIngredient, removeAvoidIngredient } = useHealthSettings();
   const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTab>('health');
   const [newIngredient, setNewIngredient] = useState("");
 
   const handleModeToggle = () => {
@@ -46,10 +50,34 @@ export function HealthSettingsPanel() {
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold flex items-center gap-2">
               <Heart className="w-6 h-6 text-red-500" />
-              Family Health Settings
+              Family Health & Weight Goals
             </DialogTitle>
           </DialogHeader>
 
+          {/* TABS */}
+          <div className="flex gap-2 border-b pb-2">
+            <Button
+              variant={activeTab === 'health' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('health')}
+              className="gap-2"
+            >
+              <Heart className="w-4 h-4" />
+              Health Settings
+            </Button>
+            <Button
+              variant={activeTab === 'weight' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('weight')}
+              className="gap-2"
+            >
+              <Target className="w-4 h-4" />
+              Weight Goals
+            </Button>
+          </div>
+
+          {/* TAB CONTENT */}
+          {activeTab === 'health' && (
           <div className="grid gap-6">
             {/* EATING MODE TOGGLE */}
             <section>
@@ -195,6 +223,11 @@ export function HealthSettingsPanel() {
               </div>
             </section>
           </div>
+          )}
+
+          {activeTab === 'weight' && (
+            <WeightGoalsPanel />
+          )}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>
