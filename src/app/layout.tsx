@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { HealthSettingsProvider } from "@/contexts/HealthSettingsContext";
 
 // Load Geist fonts into CSS variables
 const geistSans = Geist({
@@ -28,7 +29,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground`}
       >
-        {children}
+        <HealthSettingsProvider>
+          {children}
+        </HealthSettingsProvider>
       </body>
     </html>
   );

@@ -9,6 +9,8 @@ import { NavTabs } from "@/components/NavTabs";
 import { TodayView } from "@/components/views/TodayView";
 import CalendarView from "@/components/views/CalendarView";
 import GroceriesView from "@/components/views/GroceriesView";
+import { HealthSettingsPanel } from "@/components/HealthSettingsPanel";
+import { useHealthSettings } from "@/contexts/HealthSettingsContext";
 //import TrackingView from "@/components/views/TrackingView";
 //import PrepView from "@/components/views/PrepView";
 //import ReflectionView from "@/components/views/ReflectionView";
@@ -20,6 +22,7 @@ const CSV_RECIPES =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vTHgfjP9zXtcbLdDDBjL3eYfF-goQAxryyBYrBy_7RkpboHDG1VRE5_2Mesknl6uR1T0u15d53q2PJK/pub?gid=500862556&single=true&output=csv";
 
 export default function Page() {
+  const { settings } = useHealthSettings();
   const [tab, setTab] = useState<"today" | "calendar" | "groceries">("today");
   const [startOffset, setStartOffset] = useState<number>(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("tm_startOffset") : null;
@@ -41,9 +44,15 @@ export default function Page() {
       <header className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <CalendarDays className="w-6 h-6" />
-          <h1 className="text-2xl md:text-3xl font-bold">Tomlinson Family Meal App</h1>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold">Tomlinson Family Meal App</h1>
+            <div className="text-xs text-gray-500 mt-1">
+              {settings.mode === 'whole30' ? '🥗 Whole30 Mode' : '🍽️ Post-Whole30 Mode'}
+            </div>
+          </div>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-wrap">
+          <HealthSettingsPanel />
           {/* This Select still maps weekday → Day 1 for your older plan flow; keep for now */}
           <Select value={String(startOffset)} onValueChange={(v) => setStartOffset(Number(v))}>
             <SelectTrigger className="w-[220px]">
